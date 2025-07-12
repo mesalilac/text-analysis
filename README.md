@@ -4,13 +4,19 @@ Take a text file as input and analyze the text, allowing the output of the analy
 
 # Usage
 
-# Examples
+Usage: text-analysis [OPTIONS] --file <FILE>
+
+Options:
+-f, --file <FILE>
+-t, --top <TOP> Display top N letters and words, 0 for all [default: 10]
+-j, --json
+-h, --help Print help
+
+## Normal output
 
 ```rust
 cargo r -- --file t8.shakespeare.txt
 ```
-
-## Output
 
 ```
 --- Text Analysis Report ---
@@ -49,7 +55,7 @@ Total Unique Letters: 26
 --- Report End ---
 ```
 
-## Output JSON
+## JSON Output
 
 ```rust
 cargo r -- --file t8.shakespeare.txt --json
