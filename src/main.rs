@@ -92,13 +92,15 @@ impl Report {
             "{}",
             serde_json::json!({
                 "report": {
-                    "file": self.file,
-                    "top": self.top,
-                    "total_row": self.total_row_characters,
-                    "total_sanitized_words": self.total_words,
-                    "total_sanitized_letters": self.total_letters,
-                    "total_sanitized_unique_words": self.words_hashmap.len(),
-                    "total_sanitized_unique_letters": self.words_hashmap.len(),
+                    "info": {
+                        "file": self.file,
+                        "top": self.top,
+                        "total_row_characters": self.total_row_characters,
+                        "total_words": self.total_words,
+                        "total_letters": self.total_letters,
+                        "total_unique_words": self.words_hashmap.len(),
+                        "total_unique_letters": self.letters_hashmap.len(),
+                    },
                     "words": words_freq_list,
                     "letters": letters_freq_list
                 },
