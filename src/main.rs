@@ -40,19 +40,54 @@ impl Frequency {
 
 #[derive(Serialize, Debug)]
 struct Report {
-    file: String,
+    file: PathBuf,
+    text: String,
     top: usize,
     total_row_characters: usize,
     total_words: usize,
     total_letters: usize,
-    total_unique_words: usize,
-    total_unique_letters: usize,
-    words: Vec<Frequency>,
-    letters: Vec<Frequency>,
+    words_hashmap: HashMap<String, i32>,
+    letters_hashmap: HashMap<String, i32>,
 }
 
 impl Report {
+    pub fn new(file: PathBuf, top: usize, file_contents: String) -> Self {
+        let total_row_characters = file_contents.chars().count();
+        let text = sanitize_text(file_contents);
+        let total_words = text.split(" ").count();
+        let total_letters = text.split("").count();
+
+        Self {
+            file,
+            text,
+            top,
+            total_row_characters,
+            total_words,
+            total_letters,
+            words_hashmap: HashMap::new(),
+            letters_hashmap: HashMap::new(),
+        }
+    }
+
+    fn hashmap_into_frequency(&self, hashmap: HashMap<String, i32>) -> Vec<Frequency> {
+        let mut list: Vec<(String, i32)> = hashmap.clone().into_iter().collect();
+        list.sort_by(|a, b| b.1.cmp(&a.1));
+
+        if self.top != 0 {
+            list.truncate(self.top);
+        }
+
+        list.iter()
+            .map(|x| Frequency::new(x.0.clone(), x.1, self.total_letters))
+            .collect()
+    }
+
     pub fn print_json(&self) {
+        let words_freq_list: Vec<Frequency> =
+            self.hashmap_into_frequency(self.words_hashmap.clone());
+        let letters_freq_list: Vec<Frequency> =
+            self.hashmap_into_frequency(self.letters_hashmap.clone());
+
         println!(
             "{}",
             serde_json::json!({
@@ -62,31 +97,36 @@ impl Report {
                     "total_row": self.total_row_characters,
                     "total_sanitized_words": self.total_words,
                     "total_sanitized_letters": self.total_letters,
-                    "total_sanitized_unique_words": self.total_unique_words,
-                    "total_sanitized_unique_letters": self.total_unique_letters,
-                    "words": self.words,
-                    "letters":self.letters
+                    "total_sanitized_unique_words": self.words_hashmap.len(),
+                    "total_sanitized_unique_letters": self.words_hashmap.len(),
+                    "words": words_freq_list,
+                    "letters": letters_freq_list
                 },
             })
         );
     }
 
     pub fn print(&self) {
+        let words_freq_list: Vec<Frequency> =
+            self.hashmap_into_frequency(self.words_hashmap.clone());
+        let letters_freq_list: Vec<Frequency> =
+            self.hashmap_into_frequency(self.letters_hashmap.clone());
+
         println!("--- Text Analysis Report ---");
 
         println!();
 
-        println!("Input File: {}", self.file);
+        println!("Input File: {}", self.file.to_str().unwrap());
         println!("Total Row Characters: {}", self.total_row_characters);
         println!("Total Words: {}", self.total_words);
         println!("Total Letters: {}", self.total_letters);
-        println!("Total Unique Words: {}", self.total_unique_words);
-        println!("Total Unique Letters: {}", self.total_unique_letters);
+        println!("Total Unique Words: {}", self.words_hashmap.len());
+        println!("Total Unique Letters: {}", self.letters_hashmap.len());
 
         println!();
 
         println!("--- Words (Top: {}) ---", self.top);
-        for (index, word) in self.words.iter().enumerate() {
+        for (index, word) in words_freq_list.iter().enumerate() {
             println!(
                 "{}. {}: {} ({:.2}%)",
                 index + 1,
@@ -99,7 +139,7 @@ impl Report {
         println!();
 
         println!("--- Letters (Top: {}) ---", self.top);
-        for (index, letter) in self.letters.iter().enumerate() {
+        for (index, letter) in letters_freq_list.iter().enumerate() {
             println!(
                 "{}. {}: {} ({:.2}%)",
                 index + 1,
@@ -112,6 +152,29 @@ impl Report {
         println!();
 
         println!("--- Report End ---");
+    }
+
+    pub fn generate(&mut self) {
+        for word in self.text.split(" ") {
+            if word.is_empty() {
+                continue;
+            }
+
+            for letter in word.chars() {
+                let letter_string = letter.to_string();
+
+                let mut letter_count: i32 =
+                    self.letters_hashmap.remove(&letter_string).unwrap_or(0);
+                letter_count += 1;
+
+                self.letters_hashmap.insert(letter_string, letter_count);
+            }
+
+            let mut word_count: i32 = self.words_hashmap.remove(word).unwrap_or(0);
+            word_count += 1;
+
+            self.words_hashmap.insert(word.to_string(), word_count);
+        }
     }
 }
 
@@ -133,67 +196,9 @@ fn main() {
         exit(1);
     };
 
-    let text = sanitize_text(file_contents.clone());
+    let mut text_analysis_report = Report::new(args.file, args.top, file_contents);
 
-    let mut letters: HashMap<String, i32> = HashMap::new();
-    let mut words: HashMap<String, i32> = HashMap::new();
-
-    for word in text.split(" ") {
-        if word.is_empty() {
-            continue;
-        }
-
-        for letter in word.chars() {
-            let letter_string = letter.to_string();
-
-            let mut letter_count: i32 = letters.remove(&letter_string).unwrap_or(0);
-            letter_count += 1;
-
-            letters.insert(letter_string, letter_count);
-        }
-
-        let mut word_count: i32 = words.remove(word).unwrap_or(0);
-        word_count += 1;
-
-        words.insert(word.to_string(), word_count);
-    }
-
-    let total_words_count = text.split(" ").count();
-    let total_letters_count = text.split("").count();
-
-    let total_unique_words_count = words.len();
-    let total_unique_letters_count = letters.len();
-
-    let mut words_list: Vec<(String, i32)> = words.into_iter().collect();
-    words_list.sort_by(|a, b| b.1.cmp(&a.1));
-
-    let mut letters_list: Vec<(String, i32)> = letters.into_iter().collect();
-    letters_list.sort_by(|a, b| b.1.cmp(&a.1));
-
-    if args.top != 0 {
-        words_list.truncate(args.top);
-        letters_list.truncate(args.top);
-    }
-    let words_freq_list: Vec<Frequency> = words_list
-        .iter()
-        .map(|x| Frequency::new(x.0.clone(), x.1, total_words_count))
-        .collect();
-    let letters_freq_list: Vec<Frequency> = letters_list
-        .iter()
-        .map(|x| Frequency::new(x.0.clone(), x.1, total_letters_count))
-        .collect();
-
-    let text_analysis_report = Report {
-        file: args.file.to_str().unwrap().to_string(),
-        top: args.top,
-        total_row_characters: file_contents.split("").count(),
-        total_words: total_words_count,
-        total_letters: total_letters_count,
-        total_unique_words: total_unique_words_count,
-        total_unique_letters: total_unique_letters_count,
-        words: words_freq_list,
-        letters: letters_freq_list,
-    };
+    text_analysis_report.generate();
 
     if args.json {
         text_analysis_report.print_json();
