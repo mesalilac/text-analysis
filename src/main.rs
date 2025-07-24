@@ -118,46 +118,64 @@ impl Report {
         let letters_freq_list: Vec<Frequency> =
             self.hashmap_into_frequency(self.letters_hashmap.clone());
 
-        println!("--- Text Analysis Report ---");
+        println!("{}", "--- Text Analysis Report ---".bright_black());
 
         println!();
 
-        println!("Input File: {}", self.file.to_str().unwrap());
-        println!("Total Row Characters: {}", self.total_row_characters);
-        println!("Total Words: {}", self.total_words);
-        println!("Total Letters: {}", self.total_letters);
-        println!("Total Unique Words: {}", self.words_hashmap.len());
-        println!("Total Unique Letters: {}", self.letters_hashmap.len());
+        println!(
+            "Input File           : {}",
+            self.file.to_str().unwrap().green()
+        );
+        println!(
+            "Total Row Characters : {}",
+            self.total_row_characters.to_string().yellow()
+        );
+        println!(
+            "Total Words          : {}",
+            self.total_words.to_string().yellow()
+        );
+        println!(
+            "Total Letters        : {}",
+            self.total_letters.to_string().yellow()
+        );
+        println!(
+            "Total Unique Words   : {}",
+            self.words_hashmap.len().to_string().yellow()
+        );
+        println!(
+            "Total Unique Letters : {}",
+            self.letters_hashmap.len().to_string().yellow()
+        );
 
         println!();
 
-        println!("--- Words (Top: {}) ---", self.top);
+        println!("--- Words (Top: {}) ---", self.top.to_string().yellow());
         for (index, word) in words_freq_list.iter().enumerate() {
             println!(
-                "{}. {}: {} ({:.2}%)",
-                index + 1,
-                word.value,
-                word.count,
-                word.percentage
+                "{} {}: {} ({})",
+                format!("{}.", index + 1).white(),
+                word.value.green(),
+                word.count.to_string().yellow(),
+                format!("{:.2}%", word.percentage).magenta()
             );
         }
 
         println!();
 
-        println!("--- Letters (Top: {}) ---", self.top);
+        println!("--- Letters (Top: {}) ---", self.top.to_string().yellow());
         for (index, letter) in letters_freq_list.iter().enumerate() {
             println!(
-                "{}. {}: {} ({:.2}%)",
-                index + 1,
-                letter.value,
-                letter.count,
-                letter.percentage
+                "{} {}: {} ({})",
+                format!("{}.", index + 1).white(),
+                letter.value.green(),
+                letter.count.to_string().yellow(),
+                format!("{:.2}%", letter.percentage).magenta()
             );
         }
 
         println!();
 
-        println!("--- Report End ---");
+        println!("{}", "--- Report End ---".bright_black());
     }
 
     pub fn generate(&mut self) {
