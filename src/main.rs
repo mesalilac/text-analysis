@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -19,6 +20,9 @@ struct Cli {
 
     #[arg(short, long, default_value_t = false)]
     json: bool,
+
+    #[arg(short, long)]
+    no_color: bool,
 }
 
 #[derive(Serialize, Debug)]
@@ -197,6 +201,10 @@ fn main() {
         eprintln!("{} could not be read", args.file.to_str().unwrap());
         exit(1);
     };
+
+    if args.no_color || std::env::var_os("NO_COLOR").is_some() {
+        colored::control::set_override(false);
+    }
 
     let mut text_analysis_report = Report::new(args.file, args.top, file_contents);
 
